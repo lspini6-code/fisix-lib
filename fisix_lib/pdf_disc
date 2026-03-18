@@ -1,0 +1,86 @@
+'''
+La Poissoniana descrive la distribuzione del numero di eventi che accadono in 
+un intervallo di tempo fissato, la pdf che invece descrive il tempo 
+d'attesa tra due eventi successivi è la pdf esponenziale.
+'''
+import numpy as np
+import matplotlib.pyplot as plt
+import math
+import random
+
+#fattoriale.
+def Fattoriale(n):
+	if n == 0: return 1
+	else: return n*Fattoriale(n - 1)
+
+#pdf poissoniana.
+def PoissPdf(k, Lambda):
+	return np.exp(-1. * Lambda) * (Lambda**(int(k))/Fattoriale(k))
+
+#Descrive la probabilità che intercorra un tempo t tra due eventi.
+def ExpPdf(x, Lambda):
+	return Lambda * np.exp(- Lambda * x)
+
+#Iversa della cdf espoenenziale. y compreso tra 0 e 1.
+def InvExpCdf(y, Lambda):
+	return -1. * (1./Lambda) * np.log(1 - y)
+
+#Genera una lista di numeri distribuiti secondo ExpPdf.
+def GenInvExp(n, Lambda):
+	rand_exp = []
+	for _ in range(n):
+		rand_exp.append(InvExpCdf(random.random(), Lambda))
+	return rand_exp
+
+#Media aritmetica.
+def Media(dati):
+	return sum(dati)/len(dati)
+
+#Varianza.
+def Var(dati):
+	return np.var(dati)
+
+#Regola di Sturges per il binnaggio.
+def Sturges(n):
+	return math.ceil(2*(n**(1/3)))
+
+#=========================================================================================#
+
+'''PDF ESPONENZIALE DEI TEMPI'''
+asseT = np.linspace(0., 3., 1000)
+Lambda = 3 #Frequenza media di decadimenti.
+tempi = GenInvExp(3000, Lambda)
+n_bins_t = Sturges(len(tempi))
+exp_vals = [ExpPdf(t, Lambda) for t in asseT]
+
+fig, ax = plt.subplots()
+ax.hist(tempi, n_bins_t, color='green', label='istogramma exp', density=True)
+ax.plot(asseT, exp_vals, color='lightgreen', label='pdf exp')
+ax.legend()
+plt.show()
+
+'''SIMULAZIONE DECADIMENTO RADIOATTIVO'''
+delta_t = 1. #Tempo di osservazione.
+n_toys = 4000 #Numero di volte che ripeto l'operazione di conteggio.
+conteggi = [] #I conteggi sono distribuiti secondo una Poissoniana.
+
+for _ in range(n_toys):
+	cont = 0
+	t0 = 0.
+	while t0 <= delta_t:
+		t1 = GenInvExp(1, Lambda)[0]
+		t0 += t1
+		if t0 <= delta_t:
+			cont += 1
+	conteggi.append(cont)
+
+print(f"Conteggi medi in 1 secondo: {Media(conteggi):.2f}")
+print(f"Varianza: {Var(conteggi):.2f}")
+
+bin_ed = np.arange(0, 9)
+poiss = [PoissPdf(k, Lambda) for k in bin_ed]
+fig, ax = plt.subplots()
+ax.hist(conteggi, bin_ed, color='orange', label='istogramma dei conteggi', density=True)
+ax.plot(bin_ed, poiss, color='red', label='pdf poissoniana')
+ax.legend()
+plt.show()
